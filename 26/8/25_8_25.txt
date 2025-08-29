@@ -3,4 +3,4 @@ Investigué sobre SQL Lite en las siguientes fuentes:
 https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://es.wikipedia.org/wiki/SQLite&ved=2ahUKEwiis82rhLCPAxVpqpUCHdgHJpkQFnoECCwQAQ&usg=AOvVaw3jpwDGIj0Btzp62DDPAYze
 https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://sqlite.org/&ved=2ahUKEwiis82rhLCPAxVpqpUCHdgHJpkQFnoECAsQAQ&usg=AOvVaw3BkEryJd7TFB-a95HgK2_X
 
-Me dí cuenta que no quiero trabajar con tanto SQL Lite
+Me dí cuenta que no quiero trabajar con tanto SQL Liteeeee
