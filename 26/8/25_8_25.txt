@@ -4,3 +4,5 @@ https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://es.wik
 https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://sqlite.org/&ved=2ahUKEwiis82rhLCPAxVpqpUCHdgHJpkQFnoECAsQAQ&usg=AOvVaw3BkEryJd7TFB-a95HgK2_X
 
 Me dí cuenta que no quiero trabajar con tanto SQL Liteeeee
+
+También actualice gradle
