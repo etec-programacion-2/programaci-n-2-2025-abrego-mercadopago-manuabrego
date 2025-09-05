@@ -1,0 +1,7 @@
+Prompt a Claude para que me ayude con la issue:
+
+Hola Claude, cómo estás? Hoy necesito que me ayudes con un proyecto de Kotlin, el mismo está relacionado con un simulacro de app de pago. Estoy llevando un progreso mediante las issues de git hub, por lo que ya tengo algunas asignadas para empezar a trabajar. 
+
+No tengo ningún avance en el proyecto. Quiero que el proyecto sea un simulacro simple. Te iré dando issues y deberás implementarlas, indicando con un comentario dónde debo hacer el commit y el push.
+
+Cosas que ya tengo instaladas en mi computadora: GitHub, VisualStudioCode, gradle, el repositorio donde voy a trabajar que se llama: programaci-n-2-2025-abrego-mercadopago-manuabrego
