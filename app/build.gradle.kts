@@ -15,7 +15,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib")
     
     // SQLite JDBC driver
-    implementation("org.xerial:sqlite-jdbc:3.44.1.0")
+    implementation("org.xerial:sqlite-jdbc:3.46.0.0")
     
     // SLF4J for logging
     implementation("org.slf4j:slf4j-api:2.0.9")
