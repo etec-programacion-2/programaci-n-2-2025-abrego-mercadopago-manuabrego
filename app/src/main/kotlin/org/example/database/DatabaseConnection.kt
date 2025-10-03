@@ -10,11 +10,37 @@ import java.io.File
  * Implementa el patrón Singleton thread-safe usando object en Kotlin
  */
 object DatabaseConnection {
-    private const val DATABASE_PATH = "app/database/billetera.db"
-    private const val CONNECTION_URL = "jdbc:sqlite:$DATABASE_PATH"
+    // La ruta cambia dependiendo desde dónde se ejecuta
+    // Si se ejecuta desde la raíz: app/database/billetera.db
+    // Si se ejecuta desde app/: database/billetera.db
+    private const val DATABASE_PATH_FROM_ROOT = "app/database/billetera.db"
+    private const val DATABASE_PATH_FROM_APP = "database/billetera.db"
     
     @Volatile
     private var connection: Connection? = null
+    
+    /**
+     * Determina la ruta correcta de la base de datos
+     */
+    private fun getDatabasePath(): String {
+        val fromApp = File(DATABASE_PATH_FROM_APP)
+        val fromRoot = File(DATABASE_PATH_FROM_ROOT)
+        
+        return when {
+            fromApp.exists() -> {
+                println("🔍 Base de datos encontrada en: $DATABASE_PATH_FROM_APP")
+                DATABASE_PATH_FROM_APP
+            }
+            fromRoot.exists() -> {
+                println("🔍 Base de datos encontrada en: $DATABASE_PATH_FROM_ROOT")
+                DATABASE_PATH_FROM_ROOT
+            }
+            else -> {
+                println("⚠️ Base de datos no encontrada. Intentando con: $DATABASE_PATH_FROM_APP")
+                DATABASE_PATH_FROM_APP
+            }
+        }
+    }
     
     /**
      * Obtiene la conexión singleton a la base de datos
@@ -36,16 +62,22 @@ object DatabaseConnection {
      * @throws SQLException si la base de datos no existe o hay problemas de conexión
      */
     private fun createConnection(): Connection {
-        val dbFile = File(DATABASE_PATH)
+        val dbPath = getDatabasePath()
+        val dbFile = File(dbPath)
+        
         if (!dbFile.exists()) {
             throw SQLException(
-                "Base de datos no encontrada en: ${dbFile.absolutePath}. " +
-                "Ejecuta primero el script setup_db.sh"
+                "Base de datos no encontrada en: ${dbFile.absolutePath}.\n" +
+                "Buscado en:\n" +
+                "  - $DATABASE_PATH_FROM_APP\n" +
+                "  - $DATABASE_PATH_FROM_ROOT\n" +
+                "Ejecuta primero el script: ./setup_db.sh"
             )
         }
         
         return try {
-            val conn = DriverManager.getConnection(CONNECTION_URL)
+            val connectionUrl = "jdbc:sqlite:$dbPath"
+            val conn = DriverManager.getConnection(connectionUrl)
             
             // Configurar la conexión para mejor rendimiento y seguridad
             conn.autoCommit = true
@@ -56,6 +88,7 @@ object DatabaseConnection {
             stmt.close()
             
             println("✅ Conexión a base de datos establecida correctamente")
+            println("📂 Ruta: ${dbFile.absolutePath}")
             conn
         } catch (e: SQLException) {
             throw SQLException("Error al conectar con la base de datos: ${e.message}", e)
