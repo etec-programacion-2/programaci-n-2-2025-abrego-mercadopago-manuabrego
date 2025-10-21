@@ -6,32 +6,36 @@ import java.sql.SQLException
 import java.sql.Statement
 
 /**
- * Clase para manejar la ejecución de queries en la base de datos
+ * Clase para manejar la ejecución de queries(solicitud) en la base de datos
  * Utiliza el DatabaseConnection singleton y proporciona métodos seguros para ejecutar SQL
  */
 class DatabaseManager {
     
     /**
-     * Ejecuta una query SELECT y retorna el ResultSet
+     * Ejecuta una query SELECT y procesa los resultados con una lambda
+     * Los recursos se cierran automáticamente después del procesamiento
      * @param sql Query SQL a ejecutar
-     * @param parameters Parámétroso pcionales para la query preparada
-     * @return ResultSet con los resultados
+     * @param parameters Parámetros opcionales para la query preparada
+     * @param processor Función lambda para procesar el ResultSet
+     * @return Resultado del procesamiento de tipo T
      * @throws SQLException si hay error en la ejecución
      */
-    fun executeQuery(sql: String, vararg parameters: Any): ResultSet {
+    fun <T> executeQuery(sql: String, vararg parameters: Any, processor: (ResultSet) -> T): T {
         val connection = DatabaseConnection.getConnection()
-        val preparedStatement = connection.prepareStatement(sql)
         
-        try {
-            // Setear parámetros si existen
-            parameters.forEachIndexed { index, param ->
-                setPreparedStatementParameter(preparedStatement, index + 1, param)
+        return connection.prepareStatement(sql).use { preparedStatement ->
+            try {
+                // Setear parámetros si existen
+                parameters.forEachIndexed { index, param ->
+                    setPreparedStatementParameter(preparedStatement, index + 1, param)
+                }
+                
+                preparedStatement.executeQuery().use { resultSet ->
+                    processor(resultSet)
+                }
+            } catch (e: SQLException) {
+                throw SQLException("Error ejecutando query: $sql. ${e.message}", e)
             }
-            
-            return preparedStatement.executeQuery()
-        } catch (e: SQLException) {
-            preparedStatement.close()
-            throw SQLException("Error ejecutando query: $sql. ${e.message}", e)
         }
     }
     
@@ -84,13 +88,14 @@ class DatabaseManager {
                     throw SQLException("No se pudo insertar el registro")
                 }
                 
-                val generatedKeys = preparedStatement.generatedKeys
-                return if (generatedKeys.next()) {
-                    val id = generatedKeys.getLong(1)
-                    println("➕ Registro insertado con ID: $id")
-                    id
-                } else {
-                    throw SQLException("No se pudo obtener el ID generado")
+                preparedStatement.generatedKeys.use { generatedKeys ->
+                    if (generatedKeys.next()) {
+                        val id = generatedKeys.getLong(1)
+                        println("➕ Registro insertado con ID: $id")
+                        id
+                    } else {
+                        throw SQLException("No se pudo obtener el ID generado")
+                    }
                 }
             } catch (e: SQLException) {
                 throw SQLException("Error ejecutando insert: $sql. ${e.message}", e)
@@ -147,8 +152,8 @@ class DatabaseManager {
             "SELECT COUNT(*) FROM $tableName"
         }
         
-        executeQuery(sql, *parameters).use { resultSet ->
-            return if (resultSet.next()) {
+        return executeQuery(sql, *parameters) { resultSet ->
+            if (resultSet.next()) {
                 resultSet.getInt(1)
             } else {
                 0
@@ -170,7 +175,7 @@ class DatabaseManager {
     /**
      * Método privado para setear parámetros en PreparedStatement
      */
-    private fun setPreparedStatementParameter(ps: PreparedStatement, index: Int, parameter: Any) {
+    private fun setPreparedStatementParameter(ps: PreparedStatement, index: Int, parameter: Any?) {
         when (parameter) {
             is String -> ps.setString(index, parameter)
             is Int -> ps.setInt(index, parameter)
