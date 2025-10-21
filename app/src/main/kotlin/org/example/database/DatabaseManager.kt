@@ -6,19 +6,14 @@ import java.sql.SQLException
 import java.sql.Statement
 
 /**
- * Clase para manejar la ejecución de queries(solicitud) en la base de datos
- * Utiliza el DatabaseConnection singleton y proporciona métodos seguros para ejecutar SQL
+ * Singleton para manejar la ejecución de queries en la base de datos
+ * CORREGIDO: Ahora es un object singleton para evitar múltiples instancias
  */
-class DatabaseManager {
+object DatabaseManager {
     
     /**
      * Ejecuta una query SELECT y procesa los resultados con una lambda
      * Los recursos se cierran automáticamente después del procesamiento
-     * @param sql Query SQL a ejecutar
-     * @param parameters Parámetros opcionales para la query preparada
-     * @param processor Función lambda para procesar el ResultSet
-     * @return Resultado del procesamiento de tipo T
-     * @throws SQLException si hay error en la ejecución
      */
     fun <T> executeQuery(sql: String, vararg parameters: Any, processor: (ResultSet) -> T): T {
         val connection = DatabaseConnection.getConnection()
@@ -41,17 +36,12 @@ class DatabaseManager {
     
     /**
      * Ejecuta una query de modificación (INSERT, UPDATE, DELETE)
-     * @param sql Query SQL a ejecutar
-     * @param parameters Parámetros opcionales para la query preparada
-     * @return Número de filas afectadas
-     * @throws SQLException si hay error en la ejecución
      */
     fun executeUpdate(sql: String, vararg parameters: Any): Int {
         val connection = DatabaseConnection.getConnection()
         
         return connection.prepareStatement(sql).use { preparedStatement ->
             try {
-                // Setear parámetros si existen
                 parameters.forEachIndexed { index, param ->
                     setPreparedStatementParameter(preparedStatement, index + 1, param)
                 }
@@ -67,17 +57,12 @@ class DatabaseManager {
     
     /**
      * Ejecuta una query INSERT y retorna el ID generado
-     * @param sql Query INSERT a ejecutar
-     * @param parameters Parámetros opcionales para la query preparada
-     * @return ID generado por la base de datos
-     * @throws SQLException si hay error en la ejecución
      */
     fun executeInsert(sql: String, vararg parameters: Any): Long {
         val connection = DatabaseConnection.getConnection()
         
         return connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS).use { preparedStatement ->
             try {
-                // Setear parámetros si existen
                 parameters.forEachIndexed { index, param ->
                     setPreparedStatementParameter(preparedStatement, index + 1, param)
                 }
@@ -105,9 +90,6 @@ class DatabaseManager {
     
     /**
      * Ejecuta múltiples queries en una transacción
-     * @param queries Lista de pares (SQL, parámetros)
-     * @return true si todas las queries se ejecutaron correctamente
-     * @throws SQLException si alguna query falla (hace rollback automático)
      */
     fun executeTransaction(queries: List<Pair<String, Array<Any>>>): Boolean {
         val connection = DatabaseConnection.getConnection()
@@ -140,10 +122,6 @@ class DatabaseManager {
     
     /**
      * Cuenta el número de registros en una tabla
-     * @param tableName Nombre de la tabla
-     * @param whereClause Cláusula WHERE opcional (sin incluir 'WHERE')
-     * @param parameters Parámetros para la cláusula WHERE
-     * @return Número de registros
      */
     fun countRecords(tableName: String, whereClause: String? = null, vararg parameters: Any): Int {
         val sql = if (whereClause != null) {
@@ -163,10 +141,6 @@ class DatabaseManager {
     
     /**
      * Verifica si existe al menos un registro que cumpla la condición
-     * @param tableName Nombre de la tabla
-     * @param whereClause Cláusula WHERE (sin incluir 'WHERE')
-     * @param parameters Parámetros para la cláusula WHERE
-     * @return true si existe al menos un registro
      */
     fun exists(tableName: String, whereClause: String, vararg parameters: Any): Boolean {
         return countRecords(tableName, whereClause, *parameters) > 0

@@ -4,6 +4,7 @@ import java.sql.SQLException
 
 /**
  * Utilidades y extensiones para facilitar el trabajo con la base de datos
+ * CORREGIDO: Usa DatabaseManager como object singleton
  */
 object DatabaseUtils {
     
@@ -12,13 +13,12 @@ object DatabaseUtils {
      * @return true si todas las tablas principales existen y son accesibles
      */
     fun checkDatabaseHealth(): Boolean {
-        val dbManager = DatabaseManager()
         val requiredTables = listOf("users", "accounts", "transactions")
         
         return try {
             requiredTables.all { tableName ->
                 try {
-                    dbManager.countRecords(tableName)
+                    DatabaseManager.countRecords(tableName)
                     println("✅ Tabla '$tableName': Accesible")
                     true
                 } catch (e: SQLException) {
@@ -37,13 +37,12 @@ object DatabaseUtils {
      * @return Map con el conteo de registros por tabla
      */
     fun getDatabaseStats(): Map<String, Int> {
-        val dbManager = DatabaseManager()
         val tables = listOf("users", "accounts", "transactions")
         val stats = mutableMapOf<String, Int>()
         
         tables.forEach { table ->
             try {
-                stats[table] = dbManager.countRecords(table)
+                stats[table] = DatabaseManager.countRecords(table)
             } catch (e: SQLException) {
                 stats[table] = -1 // Indica error
             }
@@ -57,8 +56,6 @@ object DatabaseUtils {
      * ⚠️ CUIDADO: Esta operación elimina TODOS los datos
      */
     fun clearTestData(): Boolean {
-        val dbManager = DatabaseManager()
-        
         return try {
             val queries = listOf(
                 "DELETE FROM transactions" to emptyArray<Any>(),
@@ -66,7 +63,7 @@ object DatabaseUtils {
                 "DELETE FROM users" to emptyArray<Any>()
             )
             
-            dbManager.executeTransaction(queries)
+            DatabaseManager.executeTransaction(queries)
             println("🧹 Datos de prueba eliminados")
             true
         } catch (e: SQLException) {
@@ -79,18 +76,16 @@ object DatabaseUtils {
      * Inserta datos de prueba básicos (SOLO si no existen)
      */
     fun insertTestData(): Boolean {
-        val dbManager = DatabaseManager()
-        
         return try {
             // Verificar si ya hay datos
-            val userCount = dbManager.countRecords("users")
+            val userCount = DatabaseManager.countRecords("users")
             if (userCount > 0) {
                 println("ℹ️ Ya existen datos en la base de datos")
                 return true
             }
             
             // Insertar usuarios de prueba
-            val userId1 = dbManager.executeInsert(
+            val userId1 = DatabaseManager.executeInsert(
                 "INSERT INTO users (full_name, email, password_hash, user_type) VALUES (?, ?, ?, ?)",
                 "Juan Pérez",
                 "juan@test.com",
@@ -98,7 +93,7 @@ object DatabaseUtils {
                 "CUSTOMER"
             )
             
-            val userId2 = dbManager.executeInsert(
+            val userId2 = DatabaseManager.executeInsert(
                 "INSERT INTO users (full_name, email, password_hash, user_type) VALUES (?, ?, ?, ?)",
                 "María García",
                 "maria@test.com",
@@ -107,14 +102,14 @@ object DatabaseUtils {
             )
             
             // Insertar cuentas de prueba
-            dbManager.executeInsert(
+            DatabaseManager.executeInsert(
                 "INSERT INTO accounts (user_id, balance, currency) VALUES (?, ?, ?)",
                 userId1,
                 1000.0,
                 "ARS"
             )
             
-            dbManager.executeInsert(
+            DatabaseManager.executeInsert(
                 "INSERT INTO accounts (user_id, balance, currency) VALUES (?, ?, ?)",
                 userId2,
                 500.0,
