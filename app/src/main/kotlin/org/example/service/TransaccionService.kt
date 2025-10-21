@@ -8,31 +8,22 @@ import java.sql.ResultSet
 import java.sql.SQLException
 
 /**
- * Servicio para gestionar transacciones
- * Aplica principio Single Responsibility: solo maneja lógica de transacciones
+ * CORREGIDO: Ya no crea múltiples instancias de CuentaService
  */
-class TransaccionService(
-    private val dbManager: DatabaseManager = DatabaseManager(),
-    private val cuentaService: CuentaService = CuentaService(dbManager)
-) {
+class TransaccionService {
+    private val cuentaService = CuentaService()
     
-    /**
-     * Registra una nueva transacción y ejecuta la operación
-     * @return ID de la transacción creada
-     */
     fun registrarTransferencia(
         cuentaOrigenId: Long,
         cuentaDestinoId: Long,
         monto: Double,
         descripcion: String? = null
     ): Long {
-        // Validar datos
         if (monto <= 0) {
             throw IllegalArgumentException("El monto debe ser mayor a 0")
         }
         
-        // Crear transacción en estado PENDING
-        val transaccionId = dbManager.executeInsert(
+        val transaccionId = DatabaseManager.executeInsert(
             """INSERT INTO transactions 
                (sender_account_id, receiver_account_id, amount, currency, type, description, status) 
                VALUES (?, ?, ?, ?, ?, ?, ?)""",
@@ -46,23 +37,15 @@ class TransaccionService(
         )
         
         return try {
-            // Ejecutar la transferencia
             cuentaService.transferir(cuentaOrigenId, cuentaDestinoId, monto)
-            
-            // Actualizar estado a COMPLETED
             actualizarEstado(transaccionId, EstadoTransaccion.COMPLETED)
-            
             transaccionId
         } catch (e: Exception) {
-            // Actualizar estado a FAILED
             actualizarEstado(transaccionId, EstadoTransaccion.FAILED)
             throw e
         }
     }
     
-    /**
-     * Registra un depósito
-     */
     fun registrarDeposito(
         cuentaId: Long,
         monto: Double,
@@ -72,7 +55,7 @@ class TransaccionService(
             throw IllegalArgumentException("El monto debe ser mayor a 0")
         }
         
-        val transaccionId = dbManager.executeInsert(
+        val transaccionId = DatabaseManager.executeInsert(
             """INSERT INTO transactions 
                (receiver_account_id, amount, currency, type, description, status) 
                VALUES (?, ?, ?, ?, ?, ?)""",
@@ -94,9 +77,6 @@ class TransaccionService(
         }
     }
     
-    /**
-     * Registra un retiro
-     */
     fun registrarRetiro(
         cuentaId: Long,
         monto: Double,
@@ -106,7 +86,7 @@ class TransaccionService(
             throw IllegalArgumentException("El monto debe ser mayor a 0")
         }
         
-        val transaccionId = dbManager.executeInsert(
+        val transaccionId = DatabaseManager.executeInsert(
             """INSERT INTO transactions 
                (sender_account_id, amount, currency, type, description, status) 
                VALUES (?, ?, ?, ?, ?, ?)""",
@@ -128,15 +108,9 @@ class TransaccionService(
         }
     }
     
-    /**
-     * Obtiene el historial de transacciones de una cuenta
-     * @param cuentaId ID de la cuenta
-     * @param limit Número máximo de transacciones a retornar
-     * @return Lista de transacciones ordenadas por fecha (más recientes primero)
-     */
     fun obtenerHistorial(cuentaId: Long, limit: Int = 10): List<Transaccion> {
         return try {
-            dbManager.executeQuery(
+            DatabaseManager.executeQuery(
                 """SELECT * FROM transactions 
                    WHERE sender_account_id = ? OR receiver_account_id = ? 
                    ORDER BY created_at DESC 
@@ -157,12 +131,9 @@ class TransaccionService(
         }
     }
     
-    /**
-     * Obtiene todas las transacciones de un usuario (de todas sus cuentas)
-     */
     fun obtenerHistorialPorUsuario(userId: Long, limit: Int = 20): List<Transaccion> {
         return try {
-            dbManager.executeQuery(
+            DatabaseManager.executeQuery(
                 """SELECT t.* FROM transactions t
                    INNER JOIN accounts a ON (t.sender_account_id = a.id OR t.receiver_account_id = a.id)
                    WHERE a.user_id = ?
@@ -183,12 +154,9 @@ class TransaccionService(
         }
     }
     
-    /**
-     * Actualiza el estado de una transacción
-     */
     private fun actualizarEstado(transaccionId: Long, estado: EstadoTransaccion) {
         try {
-            dbManager.executeUpdate(
+            DatabaseManager.executeUpdate(
                 "UPDATE transactions SET status = ? WHERE id = ?",
                 estado.name,
                 transaccionId
@@ -198,9 +166,6 @@ class TransaccionService(
         }
     }
     
-    /**
-     * Mapea un ResultSet a un objeto Transaccion
-     */
     private fun mapearTransaccion(rs: ResultSet): Transaccion {
         return Transaccion(
             id = rs.getLong("id"),

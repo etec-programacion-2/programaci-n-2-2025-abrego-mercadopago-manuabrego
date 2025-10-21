@@ -7,69 +7,60 @@ import java.sql.ResultSet
 import java.sql.SQLException
 
 /**
- * Servicio para gestionar operaciones de usuarios
- * Aplica principio Single Responsibility: solo maneja lógica de usuarios
+ * Servicio para gestionar usuarios
+ * CORREGIDO: Usa DatabaseManager singleton y maneja passwordHash correctamente
  */
-class UsuarioService(private val dbManager: DatabaseManager = DatabaseManager()) {
+class UsuarioService {
     
     /**
-     * Crea un nuevo usuario en el sistema
+     * Crea un nuevo usuario
      * @param fullName Nombre completo del usuario
-     * @param email Email único del usuario
-     * @param password Contraseña en texto plano (se hasheará)
-     * @param userType Tipo de usuario (CUSTOMER o ADMIN)
+     * @param email Email del usuario
+     * @param password Contraseña en texto plano (se debería hashear en producción)
+     * @param userType Tipo de usuario (por defecto CUSTOMER)
      * @return ID del usuario creado
-     * @throws IllegalArgumentException si los datos son inválidos
-     * @throws SQLException si el email ya existe
      */
     fun crearUsuario(
-        fullName: String, 
-        email: String, 
-        password: String, 
+        fullName: String,
+        email: String,
+        password: String,
         userType: TipoUsuario = TipoUsuario.CUSTOMER
     ): Long {
-        // Validaciones
-        val usuario = Usuario(
-            fullName = fullName,
-            email = email,
-            passwordHash = hashPassword(password),
-            userType = userType
-        )
-        
-        if (!usuario.validarNombre()) {
-            throw IllegalArgumentException("El nombre debe tener al menos 3 caracteres")
-        }
-        
-        if (!usuario.validarEmail()) {
-            throw IllegalArgumentException("El email no tiene un formato válido")
-        }
-        
-        // Verificar que el email no exista
+        // Validar que el email no exista
         if (existeEmail(email)) {
-            throw SQLException("Ya existe un usuario con el email: $email")
+            throw IllegalArgumentException("El email ya está registrado")
         }
         
-        // Insertar usuario
-        return try {
-            dbManager.executeInsert(
-                "INSERT INTO users (full_name, email, password_hash, user_type) VALUES (?, ?, ?, ?)",
-                usuario.fullName,
-                usuario.email,
-                usuario.passwordHash,
-                usuario.userType.name
-            )
-        } catch (e: SQLException) {
-            throw SQLException("Error al crear usuario: ${e.message}")
-        }
+        // En producción, aquí se debería hashear la contraseña
+        // Por ahora usamos un hash simple para desarrollo
+        val passwordHash = "hash_${password}_${email.length}"
+        
+        return DatabaseManager.executeInsert(
+            """INSERT INTO users (full_name, email, password_hash, user_type) 
+               VALUES (?, ?, ?, ?)""",
+            fullName,
+            email,
+            passwordHash,
+            userType.name
+        )
     }
     
     /**
-     * Busca un usuario por su ID
-     * @return Usuario encontrado o null
+     * Autentica un usuario
+     * @param email Email del usuario
+     * @param password Contraseña en texto plano
+     * @return Usuario si las credenciales son correctas, null en caso contrario
      */
-    fun buscarPorId(id: Long): Usuario? {
+    fun autenticar(email: String, password: String): Usuario? {
         return try {
-            dbManager.executeQuery("SELECT * FROM users WHERE id = ?", id) { rs ->
+            // Generar el mismo hash que se usó al crear el usuario
+            val passwordHash = "hash_${password}_${email.length}"
+            
+            DatabaseManager.executeQuery(
+                "SELECT * FROM users WHERE email = ? AND password_hash = ?",
+                email,
+                passwordHash
+            ) { rs ->
                 if (rs.next()) {
                     mapearUsuario(rs)
                 } else {
@@ -77,17 +68,41 @@ class UsuarioService(private val dbManager: DatabaseManager = DatabaseManager())
                 }
             }
         } catch (e: SQLException) {
+            println("Error en autenticación: ${e.message}")
+            null
+        }
+    }
+    
+    /**
+     * Busca un usuario por su ID
+     */
+    fun buscarPorId(id: Long): Usuario? {
+        return try {
+            DatabaseManager.executeQuery(
+                "SELECT * FROM users WHERE id = ?",
+                id
+            ) { rs ->
+                if (rs.next()) {
+                    mapearUsuario(rs)
+                } else {
+                    null
+                }
+            }
+        } catch (e: SQLException) {
+            println("Error buscando usuario: ${e.message}")
             null
         }
     }
     
     /**
      * Busca un usuario por su email
-     * @return Usuario encontrado o null
      */
     fun buscarPorEmail(email: String): Usuario? {
         return try {
-            dbManager.executeQuery("SELECT * FROM users WHERE email = ?", email) { rs ->
+            DatabaseManager.executeQuery(
+                "SELECT * FROM users WHERE email = ?",
+                email
+            ) { rs ->
                 if (rs.next()) {
                     mapearUsuario(rs)
                 } else {
@@ -95,47 +110,33 @@ class UsuarioService(private val dbManager: DatabaseManager = DatabaseManager())
                 }
             }
         } catch (e: SQLException) {
+            println("Error buscando usuario por email: ${e.message}")
             null
         }
     }
     
     /**
-     * Lista todos los usuarios del sistema
-     * @return Lista de usuarios
-     */
-    fun listarTodos(): List<Usuario> {
-        return try {
-            dbManager.executeQuery("SELECT * FROM users ORDER BY created_at DESC") { rs ->
-                buildList {
-                    while (rs.next()) {
-                        add(mapearUsuario(rs))
-                    }
-                }
-            }
-        } catch (e: SQLException) {
-            println("Error listando usuarios: ${e.message}")
-            emptyList()
-        }
-    }
-    
-    /**
-     * Verifica si existe un email en el sistema
+     * Verifica si existe un usuario con el email dado
      */
     fun existeEmail(email: String): Boolean {
-        return dbManager.exists("users", "email = ?", email)
+        return DatabaseManager.exists("users", "email = ?", email)
     }
     
     /**
-     * Autentica un usuario con email y password
-     * @return Usuario si las credenciales son correctas, null en caso contrario
+     * Actualiza los datos de un usuario
      */
-    fun autenticar(email: String, password: String): Usuario? {
-        val usuario = buscarPorEmail(email) ?: return null
-        
-        return if (verificarPassword(password, usuario.passwordHash)) {
-            usuario
-        } else {
-            null
+    fun actualizarUsuario(id: Long, fullName: String, email: String): Boolean {
+        return try {
+            val rowsAffected = DatabaseManager.executeUpdate(
+                "UPDATE users SET full_name = ?, email = ? WHERE id = ?",
+                fullName,
+                email,
+                id
+            )
+            rowsAffected > 0
+        } catch (e: SQLException) {
+            println("Error actualizando usuario: ${e.message}")
+            false
         }
     }
     
@@ -150,20 +151,5 @@ class UsuarioService(private val dbManager: DatabaseManager = DatabaseManager())
             passwordHash = rs.getString("password_hash"),
             userType = TipoUsuario.fromString(rs.getString("user_type"))
         )
-    }
-    
-    /**
-     * Hashea una contraseña (versión simplificada)
-     * En producción usar BCrypt o similar
-     */
-    private fun hashPassword(password: String): String {
-        return "hash_${password}_${password.length}"
-    }
-    
-    /**
-     * Verifica una contraseña contra su hash
-     */
-    private fun verificarPassword(password: String, hash: String): Boolean {
-        return hashPassword(password) == hash
     }
 }
