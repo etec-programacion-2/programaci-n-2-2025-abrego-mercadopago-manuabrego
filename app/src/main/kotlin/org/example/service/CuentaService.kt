@@ -50,15 +50,12 @@ class CuentaService(private val dbManager: DatabaseManager = DatabaseManager()) 
      */
     fun buscarPorId(id: Long): Cuenta? {
         return try {
-            val resultSet = dbManager.executeQuery(
-                "SELECT * FROM accounts WHERE id = ?",
-                id
-            )
-            
-            if (resultSet.next()) {
-                mapearCuenta(resultSet)
-            } else {
-                null
+            dbManager.executeQuery("SELECT * FROM accounts WHERE id = ?", id) { rs ->
+                if (rs.next()) {
+                    mapearCuenta(rs)
+                } else {
+                    null
+                }
             }
         } catch (e: SQLException) {
             null
@@ -71,24 +68,21 @@ class CuentaService(private val dbManager: DatabaseManager = DatabaseManager()) 
      * @return Lista de cuentas del usuario
      */
     fun obtenerCuentasPorUsuario(userId: Long): List<Cuenta> {
-        val cuentas = mutableListOf<Cuenta>()
-        
-        try {
-            val resultSet = dbManager.executeQuery(
+        return try {
+            dbManager.executeQuery(
                 "SELECT * FROM accounts WHERE user_id = ? ORDER BY created_at DESC",
                 userId
-            )
-            
-            while (resultSet.next()) {
-                cuentas.add(mapearCuenta(resultSet))
+            ) { rs ->
+                buildList {
+                    while (rs.next()) {
+                        add(mapearCuenta(rs))
+                    }
+                }
             }
-            
-            resultSet.close()
         } catch (e: SQLException) {
             println("Error obteniendo cuentas: ${e.message}")
+            emptyList()
         }
-        
-        return cuentas
     }
     
     /**

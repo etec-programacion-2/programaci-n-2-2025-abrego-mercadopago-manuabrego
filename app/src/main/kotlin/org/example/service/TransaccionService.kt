@@ -135,10 +135,8 @@ class TransaccionService(
      * @return Lista de transacciones ordenadas por fecha (más recientes primero)
      */
     fun obtenerHistorial(cuentaId: Long, limit: Int = 10): List<Transaccion> {
-        val transacciones = mutableListOf<Transaccion>()
-        
-        try {
-            val resultSet = dbManager.executeQuery(
+        return try {
+            dbManager.executeQuery(
                 """SELECT * FROM transactions 
                    WHERE sender_account_id = ? OR receiver_account_id = ? 
                    ORDER BY created_at DESC 
@@ -146,28 +144,25 @@ class TransaccionService(
                 cuentaId,
                 cuentaId,
                 limit
-            )
-            
-            while (resultSet.next()) {
-                transacciones.add(mapearTransaccion(resultSet))
+            ) { rs ->
+                buildList {
+                    while (rs.next()) {
+                        add(mapearTransaccion(rs))
+                    }
+                }
             }
-            
-            resultSet.close()
         } catch (e: SQLException) {
             println("Error obteniendo historial: ${e.message}")
+            emptyList()
         }
-        
-        return transacciones
     }
     
     /**
      * Obtiene todas las transacciones de un usuario (de todas sus cuentas)
      */
     fun obtenerHistorialPorUsuario(userId: Long, limit: Int = 20): List<Transaccion> {
-        val transacciones = mutableListOf<Transaccion>()
-        
-        try {
-            val resultSet = dbManager.executeQuery(
+        return try {
+            dbManager.executeQuery(
                 """SELECT t.* FROM transactions t
                    INNER JOIN accounts a ON (t.sender_account_id = a.id OR t.receiver_account_id = a.id)
                    WHERE a.user_id = ?
@@ -175,18 +170,17 @@ class TransaccionService(
                    LIMIT ?""",
                 userId,
                 limit
-            )
-            
-            while (resultSet.next()) {
-                transacciones.add(mapearTransaccion(resultSet))
+            ) { rs ->
+                buildList {
+                    while (rs.next()) {
+                        add(mapearTransaccion(rs))
+                    }
+                }
             }
-            
-            resultSet.close()
         } catch (e: SQLException) {
             println("Error obteniendo historial por usuario: ${e.message}")
+            emptyList()
         }
-        
-        return transacciones
     }
     
     /**

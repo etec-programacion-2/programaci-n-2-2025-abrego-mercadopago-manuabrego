@@ -69,15 +69,12 @@ class UsuarioService(private val dbManager: DatabaseManager = DatabaseManager())
      */
     fun buscarPorId(id: Long): Usuario? {
         return try {
-            val resultSet = dbManager.executeQuery(
-                "SELECT * FROM users WHERE id = ?",
-                id
-            )
-            
-            if (resultSet.next()) {
-                mapearUsuario(resultSet)
-            } else {
-                null
+            dbManager.executeQuery("SELECT * FROM users WHERE id = ?", id) { rs ->
+                if (rs.next()) {
+                    mapearUsuario(rs)
+                } else {
+                    null
+                }
             }
         } catch (e: SQLException) {
             null
@@ -90,15 +87,12 @@ class UsuarioService(private val dbManager: DatabaseManager = DatabaseManager())
      */
     fun buscarPorEmail(email: String): Usuario? {
         return try {
-            val resultSet = dbManager.executeQuery(
-                "SELECT * FROM users WHERE email = ?",
-                email
-            )
-            
-            if (resultSet.next()) {
-                mapearUsuario(resultSet)
-            } else {
-                null
+            dbManager.executeQuery("SELECT * FROM users WHERE email = ?", email) { rs ->
+                if (rs.next()) {
+                    mapearUsuario(rs)
+                } else {
+                    null
+                }
             }
         } catch (e: SQLException) {
             null
@@ -110,21 +104,18 @@ class UsuarioService(private val dbManager: DatabaseManager = DatabaseManager())
      * @return Lista de usuarios
      */
     fun listarTodos(): List<Usuario> {
-        val usuarios = mutableListOf<Usuario>()
-        
-        try {
-            val resultSet = dbManager.executeQuery("SELECT * FROM users ORDER BY created_at DESC")
-            
-            while (resultSet.next()) {
-                usuarios.add(mapearUsuario(resultSet))
+        return try {
+            dbManager.executeQuery("SELECT * FROM users ORDER BY created_at DESC") { rs ->
+                buildList {
+                    while (rs.next()) {
+                        add(mapearUsuario(rs))
+                    }
+                }
             }
-            
-            resultSet.close()
         } catch (e: SQLException) {
             println("Error listando usuarios: ${e.message}")
+            emptyList()
         }
-        
-        return usuarios
     }
     
     /**
