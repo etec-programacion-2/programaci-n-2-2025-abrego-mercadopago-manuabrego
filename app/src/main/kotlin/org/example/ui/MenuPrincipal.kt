@@ -4,6 +4,8 @@ import org.example.model.Usuario
 import org.example.service.CuentaService
 import org.example.service.TransaccionService
 import org.example.service.UsuarioService
+import org.example.util.Logger
+import java.util.Scanner
 
 /**
  * Menú principal de la aplicación
@@ -15,27 +17,62 @@ class MenuPrincipal(
 ) {
     private var usuarioActual: Usuario? = null
     private var ejecutando = true
+    private var iteraciones = 0
+    private val scanner = Scanner(System.`in`)
+    
+    /**
+     * Lee una línea de forma segura, nunca retorna null
+     */
+    private fun leerLinea(): String {
+        return try {
+            scanner.nextLine().trim()
+        } catch (e: Exception) {
+            Logger.error("Error leyendo input", e)
+            ""
+        }
+    }
     
     /**
      * Inicia el menú principal
      */
     fun iniciar() {
+        Logger.debug("MenuPrincipal.iniciar() - INICIO")
         ConsoleUI.limpiarPantalla()
         mostrarBienvenida()
         
+        Logger.debug("Entrando al loop principal del menú")
         while (ejecutando) {
+            iteraciones++
+            Logger.debug("Iteración #$iteraciones del menú")
+            
+            if (iteraciones > 1000) {
+                Logger.error("LOOP INFINITO DETECTADO! Más de 1000 iteraciones")
+                println("\n❌ ERROR: Loop infinito detectado")
+                println("💡 Posible causa: Sistema sin soporte de input interactivo")
+                break
+            }
+            
             try {
                 if (usuarioActual == null) {
+                    Logger.debug("Mostrando menuNoAutenticado")
                     menuNoAutenticado()
                 } else {
+                    Logger.debug("Mostrando menuAutenticado (usuario: ${usuarioActual?.email})")
                     menuAutenticado()
                 }
+                
+                // Pequeña pausa para prevenir loops infinitos si readLine falla
+                Thread.sleep(10)
             } catch (e: Exception) {
+                Logger.error("Error en el loop del menú", e)
                 ConsoleUI.mostrarError("Error: ${e.message}")
             }
         }
         
+        Logger.debug("Saliendo del loop principal (ejecutando=$ejecutando)")
+        scanner.close()
         mostrarDespedida()
+        Logger.debug("MenuPrincipal.iniciar() - FIN")
     }
     
     private fun mostrarBienvenida() {
@@ -56,12 +93,16 @@ class MenuPrincipal(
         println("3. Salir")
         print("\nSeleccione una opcion: ")
         
-        val opcion = readLine()?.trim()
+        val opcion = leerLinea()
         
         when (opcion) {
             "1" -> iniciarSesion()
             "2" -> registrarUsuario()
             "3" -> ejecutando = false
+            "" -> {
+                Logger.warn("Opción vacía detectada")
+                ConsoleUI.mostrarError("Por favor ingrese una opción válida")
+            }
             else -> ConsoleUI.mostrarError("Opcion invalida")
         }
     }
@@ -83,7 +124,7 @@ class MenuPrincipal(
         println("9. Salir")
         print("\nSeleccione una opcion: ")
         
-        val opcion = readLine()?.trim()
+        val opcion = leerLinea()
         
         when (opcion) {
             "1" -> crearCuenta()
@@ -95,6 +136,10 @@ class MenuPrincipal(
             "7" -> verTodasLasCuentas()
             "8" -> cerrarSesion()
             "9" -> ejecutando = false
+            "" -> {
+                Logger.warn("Opción vacía detectada")
+                ConsoleUI.mostrarError("Por favor ingrese una opción válida")
+            }
             else -> ConsoleUI.mostrarError("Opcion invalida")
         }
     }
@@ -103,10 +148,10 @@ class MenuPrincipal(
         ConsoleUI.mostrarTitulo("INICIAR SESION")
         
         print("Email: ")
-        val email = readLine()?.trim() ?: ""
+        val email = leerLinea()
         
         print("Contraseña: ")
-        val password = readLine()?.trim() ?: ""
+        val password = leerLinea()
         
         if (email.isBlank() || password.isBlank()) {
             ConsoleUI.mostrarError("Email y contraseña no pueden estar vacios")
@@ -127,13 +172,13 @@ class MenuPrincipal(
         ConsoleUI.mostrarTitulo("REGISTRARSE")
         
         print("Nombre completo: ")
-        val nombre = readLine()?.trim() ?: ""
+        val nombre = leerLinea()
         
         print("Email: ")
-        val email = readLine()?.trim() ?: ""
+        val email = leerLinea()
         
         print("Contraseña: ")
-        val password = readLine()?.trim() ?: ""
+        val password = leerLinea()
         
         if (nombre.isBlank() || email.isBlank() || password.isBlank()) {
             ConsoleUI.mostrarError("Todos los campos son obligatorios")
@@ -155,8 +200,8 @@ class MenuPrincipal(
         ConsoleUI.mostrarTitulo("CREAR CUENTA")
         
         print("Balance inicial (presione Enter para 0): ")
-        val balanceStr = readLine()?.trim()
-        val balance = balanceStr?.toDoubleOrNull() ?: 0.0
+        val balanceStr = leerLinea()
+        val balance = balanceStr.toDoubleOrNull() ?: 0.0
         
         try {
             val cuentaId = cuentaService.crearCuenta(usuario.id, balance)
@@ -184,7 +229,7 @@ class MenuPrincipal(
         ConsoleUI.mostrarListaCuentas(cuentas)
         
         print("\nID de la cuenta: ")
-        val cuentaId = readLine()?.trim()?.toLongOrNull()
+        val cuentaId = leerLinea().toLongOrNull()
         
         if (cuentaId == null) {
             ConsoleUI.mostrarError("ID invalido")
@@ -220,7 +265,7 @@ class MenuPrincipal(
         ConsoleUI.mostrarListaCuentas(cuentas)
         
         print("\nID de tu cuenta origen: ")
-        val cuentaOrigenId = readLine()?.trim()?.toLongOrNull()
+        val cuentaOrigenId = leerLinea().toLongOrNull()
         if (cuentaOrigenId == null) return
         
         val cuentaOrigen = cuentaService.buscarPorId(cuentaOrigenId)
@@ -231,7 +276,7 @@ class MenuPrincipal(
         }
         
         print("ID de la cuenta destino: ")
-        val cuentaDestinoId = readLine()?.trim()?.toLongOrNull()
+        val cuentaDestinoId = leerLinea().toLongOrNull()
         if (cuentaDestinoId == null) return
         
         val cuentaDestino = cuentaService.buscarPorId(cuentaDestinoId)
@@ -242,7 +287,7 @@ class MenuPrincipal(
         }
         
         print("Monto a enviar: ")
-        val monto = readLine()?.trim()?.toDoubleOrNull()
+        val monto = leerLinea().toDoubleOrNull()
         if (monto == null || monto <= 0) {
             ConsoleUI.mostrarError("Monto invalido")
             ConsoleUI.pausar()
@@ -255,7 +300,7 @@ class MenuPrincipal(
         println("Monto: $monto ARS")
         
         print("\nConfirmar (S/N): ")
-        val confirmacion = readLine()?.trim()?.uppercase()
+        val confirmacion = leerLinea().uppercase()
         
         if (confirmacion != "S" && confirmacion != "SI") {
             ConsoleUI.mostrarInfo("Transferencia cancelada")
@@ -299,7 +344,7 @@ class MenuPrincipal(
         ConsoleUI.mostrarListaCuentas(cuentas)
         
         print("\nID de la cuenta: ")
-        val cuentaId = readLine()?.trim()?.toLongOrNull()
+        val cuentaId = leerLinea().toLongOrNull()
         if (cuentaId == null) return
         
         val cuenta = cuentaService.buscarPorId(cuentaId)
@@ -330,7 +375,7 @@ class MenuPrincipal(
         ConsoleUI.mostrarListaCuentas(cuentas)
         
         print("\nID de la cuenta: ")
-        val cuentaId = readLine()?.trim()?.toLongOrNull()
+        val cuentaId = leerLinea().toLongOrNull()
         if (cuentaId == null) return
         
         val cuenta = cuentaService.buscarPorId(cuentaId)
@@ -341,7 +386,7 @@ class MenuPrincipal(
         }
         
         print("Monto a depositar: ")
-        val monto = readLine()?.trim()?.toDoubleOrNull()
+        val monto = leerLinea().toDoubleOrNull()
         if (monto == null || monto <= 0) {
             ConsoleUI.mostrarError("Monto invalido")
             ConsoleUI.pausar()
@@ -379,7 +424,7 @@ class MenuPrincipal(
         ConsoleUI.mostrarListaCuentas(cuentas)
         
         print("\nID de la cuenta: ")
-        val cuentaId = readLine()?.trim()?.toLongOrNull()
+        val cuentaId = leerLinea().toLongOrNull()
         if (cuentaId == null) return
         
         val cuenta = cuentaService.buscarPorId(cuentaId)
@@ -392,7 +437,7 @@ class MenuPrincipal(
         println("\nBalance actual: ${cuenta.balanceFormateado()}")
         
         print("Monto a retirar: ")
-        val monto = readLine()?.trim()?.toDoubleOrNull()
+        val monto = leerLinea().toDoubleOrNull()
         if (monto == null || monto <= 0) {
             ConsoleUI.mostrarError("Monto invalido")
             ConsoleUI.pausar()

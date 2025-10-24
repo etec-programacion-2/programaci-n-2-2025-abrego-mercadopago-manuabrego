@@ -148,7 +148,7 @@ object DatabaseManager {
     
     /**
      * Método privado para setear parámetros en PreparedStatement
-     */
+    */
     private fun setPreparedStatementParameter(ps: PreparedStatement, index: Int, parameter: Any?) {
         when (parameter) {
             is String -> ps.setString(index, parameter)

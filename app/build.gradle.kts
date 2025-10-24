@@ -56,3 +56,6 @@ tasks.register<Delete>("cleanDatabase") {
     description = "Elimina la base de datos existente"
     delete("database/billetera.db")
 }
+tasks.named<JavaExec>("run") {
+    standardInput = System.`in`
+}
