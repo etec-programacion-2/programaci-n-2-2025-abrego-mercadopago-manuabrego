@@ -36,17 +36,13 @@ Podés obtener el proyecto de dos maneras:
 ### Opción 1: Clonar con Git
 
 ```bash
-git clone 
-cd Transferencias_Ya
+git clone git@github.com:etec-programacion-2/programaci-n-2-2025-abrego-mercadopago-manuabrego.git
+cd /programaci-n-2-2025-abrego-mercadopago-manuabrego
+
+
 ```
 
-### Opción 2: Descargar manualmente
 
-1. Descargá el archivo ZIP del repositorio o desde la entrega del proyecto.  
-2. Extraé el contenido en una carpeta local.  
-3. Abrí una terminal en la carpeta raíz del proyecto
-
----
 
 ## ⚙️ Compilación y ejecución
 
