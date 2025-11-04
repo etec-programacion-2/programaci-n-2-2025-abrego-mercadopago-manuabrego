@@ -36,7 +36,7 @@ Podés obtener el proyecto de dos maneras:
 ### Opción 1: Clonar con Git
 
 ```bash
-git clone https://github.com/tu-usuario/Transferencias_Ya.git
+git clone 
 cd Transferencias_Ya
 ```
 
@@ -129,7 +129,7 @@ Para comprobar que todo funciona correctamente:
 
 Proyecto desarrollado por **Manuel Abrego Sorli**  
 Materia: *Programación II (2025)*  
-Lenguaje: *Kotlin 1.9+*
+Lenguaje: *Kotlin 2.2+*
 
 ---
 
