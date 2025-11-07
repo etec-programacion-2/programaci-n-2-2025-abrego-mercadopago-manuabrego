@@ -46,34 +46,13 @@ cd /programaci-n-2-2025-abrego-mercadopago-manuabrego
 
 ## ⚙️ Compilación y ejecución
 
-### Paso 1: Compilar el proyecto
-
-En Linux o macOS:
-```bash
-./gradlew build
-```
-
-En Windows:
-```bash
-gradlew.bat build
-```
-
-Esto genera los archivos compilados dentro de `build/libs/`, incluyendo el JAR ejecutable.
-
-### Paso 2: Ejecutar la aplicación
+### Paso 1:Ejecutar la aplicación
 
 Podés ejecutarla directamente con Gradle:
 
 ```bash
 ./gradlew run
 ```
-
-O bien, ejecutar el JAR generado:
-
-```bash
-java -jar build/libs/app-1.0-SNAPSHOT.jar
-```
-
 ---
 
 ## 🧩 Estructura del proyecto
