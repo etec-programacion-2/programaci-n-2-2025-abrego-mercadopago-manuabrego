@@ -47,6 +47,9 @@ cd /programaci-n-2-2025-abrego-mercadopago-manuabrego
 ## ⚙️ Compilación y ejecución
 
 ### Paso 1:Ejecutar la aplicación
+Ejecutar la base de datos: 
+./setup_db.sh
+
 
 Podés ejecutarla directamente con Gradle:
 
@@ -55,6 +58,65 @@ Podés ejecutarla directamente con Gradle:
 ```
 ---
 
+🔧 Verificar Configuración: 
+
+Verificar archivo build.gradle.kts
+
+Asegúrate de que tu app/build.gradle.kts tenga esta configuración:
+
+plugins {
+    kotlin("jvm") version "2.2.10"
+    application
+}
+
+group = "org.example"
+version = "1.0-SNAPSHOT"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation("org.jetbrains.kotlin:kotlin-stdlib")
+    implementation("org.xerial:sqlite-jdbc:3.46.0.0")
+    implementation("org.slf4j:slf4j-api:2.0.9")
+    implementation("org.slf4j:slf4j-simple:2.0.9")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    
+    testImplementation("org.jetbrains.kotlin:kotlin-test")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
+    testImplementation("org.mockito:mockito-core:5.6.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.1.0")
+}
+
+application {
+    mainClass.set("org.example.MainKt")
+}
+
+tasks.test {
+    useJUnitPlatform()
+}
+
+kotlin {
+    jvmToolchain(17)
+}
+
+
+tasks.named<JavaExec>("run") {
+    standardInput = System.`in`
+}
+
+tasks.register<Exec>("setupDatabase") {
+    group = "database"
+    description = "Inicializa la base de datos SQLite"
+    commandLine("bash", "setup_db.sh")
+}
+
+tasks.register<Delete>("cleanDatabase") {
+    group = "database"
+    description = "Elimina la base de datos existente"
+    delete("app/database/billetera.db")
+}
 ## 🧩 Estructura del proyecto
 
 ```
