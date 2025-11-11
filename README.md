@@ -48,10 +48,10 @@ cd /programaci-n-2-2025-abrego-mercadopago-manuabrego
 
 ### Paso 1:Ejecutar la aplicación
 Ejecutar la base de datos: 
+```bash
 ./setup_db.sh
-
-
-Podés ejecutarla directamente con Gradle:
+```
+Ejecutar el gradle
 
 ```bash
 ./gradlew run
